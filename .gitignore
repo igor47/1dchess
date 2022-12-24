@@ -1,5 +1,8 @@
 .envrc
 
+# vim swap files
+*.sw?
+
 # from here:
 # https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored
 .pnp.*
@@ -9,3 +12,19 @@
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# vite outputs
+dist
+dist-ssr
+
+# shouldn't appear anyway, but just in case
+node_modules
