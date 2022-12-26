@@ -8,8 +8,6 @@ import type { Square } from './state'
 
 import { Pawn, Rook, Knight, Bishop, Queen, King } from './Pieces'
 
-import './assets/board.css'
-
 type SquareP = {
   square: Square,
 }
@@ -45,7 +43,11 @@ function SquareEl({ square }: SquareP) {
   const piece = pieceEl(square)
 
   return (
-    <div className={ cls } onClick={ () => handleClick(square) } onAnimationEnd={() => clearError(square)}>
+    <div
+      className={ cls }
+      onClick={ () => handleClick(square.idx) }
+      onAnimationEnd={ () => clearError(square.idx) }
+    >
       { piece }
     </div>
   )
@@ -54,13 +56,25 @@ function SquareEl({ square }: SquareP) {
 function Board() {
   const snap = useSnapshot(state)
 
-  const squares = snap.squares.map((sq, idx) =>
-    <SquareEl key={idx} square={ sq } />
-  )
+  // we should start ordering like:
+  // 56 ... 63
+  // ...
+  // 0 ... 7
+  // so, 56 has the lowest ordering (should be 0), and 7 has the heighest (63)
+  const squares = []
+  for (let row = 7; row >= 0; row--) {
+    for (let col = 0; col <= 7; col++) {
+      const idx = (row << 3) + col
+      const sq = snap.squares[idx]
+      squares.push(
+        <SquareEl key={idx} square={ sq } />
+      )
+    }
+  }
 
   return (
-    <div style={ { display: 'flex', flexWrap: 'wrap', flexDirection: 'row-reverse' } }>
-      { squares.reverse() }
+    <div id="board">
+      { squares }
     </div>
   )
 }

@@ -5,14 +5,15 @@ div.square {
 div.square.white {
   background-color: white;
 }
+div.square.white.highlight {
+  background-color: hsl(128 80% 90%);
+}
 
 div.square.black {
   background-color: black;
 }
-
-div.square.highlight {
-  outline: 5px solid green;
-  z-index: 10;
+div.square.black.highlight {
+  background-color: hsl(128 80% 10%);
 }
 
 div.square.error {

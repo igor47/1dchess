@@ -15,62 +15,29 @@ class Piece {
 
 class Square {
   idx: number
-  white: boolean = true
+  white: boolean
   piece: Piece | null = null
   highlight: boolean = false
   error: boolean = false
 
   constructor (idx: number) {
     this.idx = idx
+
+    const row = idx >> 3
+    const col = idx - (row << 3)
+
+    this.white = (row % 2 !== col % 2)
   }
 }
 
 type Move = {
   from: number,
   to: number,
-  white: boolean,
-  enpassCapture: boolean,
   promotion: boolean,
-  ksCastle: boolean,
-  qsCastle: boolean,
 }
 
-function initialBoard() {
-  const squares = Array(64).fill(null).map((_v, idx) => new Square(idx))
-  for (let i = 0; i < squares.length; i++) {
-    const row = i >> 3
-    const col = i - (row << 3)
-
-    if (row % 2 === 0) {
-      squares[i].white = col % 2 === 0 ? false : true
-    } else {
-      squares[i].white = col % 2 === 0 ? true : false
-    }
-
-    let piece: Piece['piece'] | null = null
-    const pieceWhite = row >= 6 ? false : true
-
-    if ([1,6].includes(row)) piece = 'p'
-    if ([0,7].includes(row)) {
-      if ([0, 7].includes(col)) {
-        piece = 'r'
-      } else if ([1, 6].includes(col)) {
-        piece = 'n'
-      } else if ([2, 5].includes(col)) {
-        piece = 'b'
-      } else if (col === 3) {
-        piece = 'q'
-      } else {
-        piece = 'k'
-      }
-    }
-
-    if (piece !== null) {
-      squares[i].piece = new Piece(pieceWhite, piece)
-    }
-  }
-
-  return squares
+function emptySquares() {
+  return Array(64).fill(null).map((_v, idx) => new Square(idx))
 }
 
 type State = {
@@ -80,14 +47,20 @@ type State = {
 
 const state = proxy<State>({
   chess: new Chess(),
-  squares: initialBoard(),
+  squares: []
 })
 
-function handleClick(square: Square) {
-  const whiteMoves = state.chess.turn() === 'w'
 
-  const cur = getSquare(square.idx)
+function clearError(idx: Square['idx']) {
+  const cur = getSquare(idx)
+  cur.error = false
+}
+
+function handleClick(idx: Square['idx']) {
+  const cur = getSquare(idx)
   const prevSelected = state.squares.find(sq => sq.piece?.selected)
+
+  const whiteMoves = state.chess.turn() === 'w'
 
   // nothing previously selected
   if (!prevSelected) {
@@ -140,39 +113,8 @@ async function makeMove(move: Move, promotion: cMove['promotion'] = undefined) {
     promotion,
   })
 
-  const from = getSquare(move.from)
-  const to = getSquare(move.to)
-
-  // actually move the piece
-  to.piece = from.piece!
-  to.piece.selected = false
-  from.piece = null
-
-  // update any other pieces
-  if (move.enpassCapture) {
-    const capturedIdx = move.white ? move.to - 8 : move.to + 8
-    getSquare(capturedIdx).piece = null
-  }
-
-  if (move.ksCastle) {
-    const rookSrc = getSquare(move.to + 1)
-    const rookDest = getSquare(move.to - 1)
-    rookDest.piece = rookSrc.piece
-    rookSrc.piece = null
-  }
-  if (move.qsCastle) {
-    const rookSrc = getSquare(move.to - 2)
-    const rookDest = getSquare(move.to + 1)
-    rookDest.piece = rookSrc.piece
-    rookSrc.piece = null
-  }
-
-  highlightAvailable(from)
-}
-
-function clearError(square: Square) {
-  const cur = getSquare(square.idx)
-  cur.error = false
+  // update the squares
+  chessToSquares()
 }
 
 function highlightAvailable(cur: Square) {
@@ -215,13 +157,23 @@ function validMovesFor(idx: Square['idx']): Array<Move> {
   return moves.map((move) => ({
     from: idx,
     to: sqToIdx(move.to),
-    white: move.color === 'w',
-    enpassCapture: move.flags.includes('e'),
     promotion: move.flags.includes('p'),
-    ksCastle: move.flags.includes('k'),
-    qsCastle: move.flags.includes('q'),
   }))
 }
+
+function chessToSquares() {
+  const squares = emptySquares()
+  for (const cq of state.chess.board().flat()) {
+    if (cq) {
+      const sq = squares.find(sq => sq.idx === sqToIdx(cq.square))!
+      sq.piece = new Piece(cq.color === 'w', cq.type)
+    }
+  }
+
+  state.squares = squares
+}
+
+chessToSquares()
 
 export {
   state,

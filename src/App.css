@@ -1,5 +1,70 @@
-#root {
-  max-width: 1280px;
-  padding: 2rem;
+#app {
+  padding: 0 20px;
   text-align: center;
+}
+
+#game {
+  display: flex;
+}
+
+#sidebar {
+  border: 1px solid red;
+  width: 340px;
+}
+
+#board {
+  display: inline-grid;
+  grid-template-columns: repeat(11, 96px);
+  margin-right: 20px;
+}
+
+/* okay, so, we have 20 * 2 = 40px padding
+ * 20px margin between board and sidebar
+ * 300px for the sidebar
+ * total: 400px
+ * so, we have truly-1d chess if media width < 496
+ */
+@media (max-width: 1500px) { #board { grid-template-columns: repeat(10, 96px); } }
+@media (max-width: 1400px) { #board { grid-template-columns: repeat(9, 96px); } }
+@media (max-width: 1200px) { #board { grid-template-columns: repeat(7, 96px); } }
+@media (max-width: 1000px) { #board { grid-template-columns: repeat(6, 96px); } }
+@media (max-width: 900px) { #board { grid-template-columns: repeat(5, 96px); } }
+@media (max-width: 800px) { #board { grid-template-columns: repeat(4, 96px); } }
+@media (max-width: 700px) { #board { grid-template-columns: repeat(3, 96px); } }
+@media (max-width: 600px) { #board { grid-template-columns: repeat(2, 96px); } }
+@media (max-width: 500px) { #board { grid-template-columns: repeat(1, 96px); } }
+
+div.square {
+  padding: 16px;
+}
+
+div.square.white {
+  background-color: white;
+}
+div.square.white.highlight {
+  background-color: hsl(128 80% 90%);
+}
+
+div.square.black {
+  background-color: black;
+}
+div.square.black.highlight {
+  background-color: hsl(128 80% 10%);
+}
+
+div.square.error {
+  animation-duration: 0.5s;
+  animation-name: error-flash;
+  animation-iteration-count: 1;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes error-flash {
+  from {
+    background-color: red;
+  }
+
+  to {
+  }
 }
