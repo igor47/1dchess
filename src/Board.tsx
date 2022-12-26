@@ -3,7 +3,7 @@ import { ReactNode } from 'react'
 import { useSnapshot } from 'valtio'
 import classNames from 'classnames'
 
-import { state, handleClick } from './state'
+import { state, handleClick, clearError } from './state'
 import type { Square } from './state'
 
 import { Pawn, Rook, Knight, Bishop, Queen, King } from './Pieces'
@@ -45,7 +45,7 @@ function SquareEl({ square }: SquareP) {
   const piece = pieceEl(square)
 
   return (
-    <div className={ cls } onClick={ () => handleClick(square) }>
+    <div className={ cls } onClick={ () => handleClick(square) } onAnimationEnd={() => clearError(square)}>
       { piece }
     </div>
   )

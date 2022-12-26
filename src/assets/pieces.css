@@ -29,6 +29,10 @@ svg.piece.selected > path:nth-child(1) {
   animation-timing-function: linear;
 }
 
+svg.rook > path:nth-child(1) {
+  animation-direction: reverse;
+}
+
 @keyframes selected-border {
   from {
     stroke-dashoffset: 0;

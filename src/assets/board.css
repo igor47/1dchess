@@ -14,3 +14,20 @@ div.square.highlight {
   outline: 5px solid green;
   z-index: 10;
 }
+
+div.square.error {
+  animation-duration: 0.5s;
+  animation-name: error-flash;
+  animation-iteration-count: 1;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes error-flash {
+  from {
+    background-color: red;
+  }
+
+  to {
+  }
+}

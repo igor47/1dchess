@@ -66,34 +66,31 @@ function initialBoard() {
 type State = {
   chess: Chess,
   squares: Square[],
-  lastMove: { from: Square, to: Square} | null,
 }
 
 const state = proxy<State>({
   chess: new Chess(),
   squares: initialBoard(),
-  lastMove: null,
 })
 
 function handleClick(square: Square) {
-  const whiteMoves = state.lastMove === null || !state.lastMove.to.piece!.white
+  const whiteMoves = state.chess.turn() === 'w'
 
   const cur = getSquare(square.idx)
   const prevSelected = state.squares.find(sq => sq.piece?.selected)
 
-  if (!cur.piece && !prevSelected) {
-    cur.error = true
-    return
-  }
-
   // nothing previously selected
   if (!prevSelected) {
-    // clicked on a piece
-    if (cur.piece && cur.piece.white === whiteMoves) {
+    // just clicking on a random square
+    if (!cur.piece) {
+      cur.error = true
+
+    // clicked on a piece that can move
+    } else if (cur.piece.white === whiteMoves) {
       cur.piece.selected = true
       highlightAvailable(cur)
 
-    // clicked on a random empty square for no reason
+    // clicked on an enemy piece
     } else {
       cur.error = true
     }
@@ -119,11 +116,17 @@ function handleClick(square: Square) {
       cur.piece = prevSelected.piece!
       cur.piece.selected = false
       prevSelected.piece = null
-      state.lastMove = { from: prevSelected, to: cur }
     } else {
+      highlightAvailable(cur)
+      prevSelected.piece!.selected = false
       cur.error = true
     }
   }
+}
+
+function clearError(square: Square) {
+  const cur = getSquare(square.idx)
+  cur.error = false
 }
 
 function highlightAvailable(cur: Square) {
@@ -174,6 +177,7 @@ function validMovesFor(idx: Square['idx']): Array<number> {
 export {
   state,
   handleClick,
+  clearError,
 }
 
 export type {
