@@ -1,11 +1,14 @@
 import { ReactNode } from 'react'
 
 import { useSnapshot } from 'valtio'
+import classNames from 'classnames'
 
 import { state, handleClick } from './state'
 import type { Square } from './state'
 
 import { Pawn, Rook, Knight, Bishop, Queen, King } from './Pieces'
+
+import './assets/board.css'
 
 type SquareP = {
   square: Square,
@@ -29,15 +32,20 @@ function pieceEl(square: Square): ReactNode {
 }
 
 function SquareEl({ square }: SquareP) {
-  const style = {
-    backgroundColor: square.white ? 'white' : 'black',
-    padding: '16px',
-  }
+  const cls = classNames(
+    'square',
+    {
+      white: square.white,
+      black: !square.white,
+      highlight: square.highlight,
+      error: square.error,
+    }
+  )
 
   const piece = pieceEl(square)
 
   return (
-    <div style={ style } onClick={ () => handleClick(square) }>
+    <div className={ cls } onClick={ () => handleClick(square) }>
       { piece }
     </div>
   )

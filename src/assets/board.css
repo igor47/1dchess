@@ -1,0 +1,16 @@
+div.square {
+  padding: 16px;
+}
+
+div.square.white {
+  background-color: white;
+}
+
+div.square.black {
+  background-color: black;
+}
+
+div.square.highlight {
+  outline: 5px solid green;
+  z-index: 10;
+}
