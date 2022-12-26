@@ -1,0 +1,25 @@
+svg.piece.white.onBlack > path:nth-child(1) {
+  fill: white;
+}
+
+svg.piece.selected > path:nth-child(1) {
+  stroke: blue;
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+}
+
+svg.bishop,svg.knight,svg.bishop,svg.queen,svg.king > path:nth-child(2) {
+  fill-rule: evenodd;
+}
+
+svg.bishop,svg.knight > path:nth-child(2) {
+  clip-rule: evenodd;
+}
+
+svg.piece.white > path:nth-child(2) {
+  fill: white;
+}
+
+svg.piece.black > path:nth-child(3) {
+  fill: white;
+}
