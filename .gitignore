@@ -28,3 +28,5 @@ dist-ssr
 
 # shouldn't appear anyway, but just in case
 node_modules
+
+.firebase
