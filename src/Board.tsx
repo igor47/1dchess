@@ -22,10 +22,10 @@ function pieceEl(square: Square): ReactNode {
   const El =  {
     'p': Pawn,
     'r': Rook,
-    'k': Knight,
+    'n': Knight,
     'b': Bishop,
     'q': Queen,
-    'K': King,
+    'k': King,
   }[piece.piece]
 
   return <El size={ 64 } white={ piece.white } onWhite={ square.white } selected={ piece.selected } />

@@ -12,6 +12,7 @@ __metadata:
     "@types/react": ^18.0.26
     "@types/react-dom": ^18.0.9
     "@vitejs/plugin-react": ^3.0.0
+    chess.js: ^1.0.0-alpha.0
     classnames: ^2.3.2
     firebase: ^9.15.0
     firebase-tools: ^11.19.0
@@ -2178,6 +2179,13 @@ __metadata:
   version: 0.7.0
   resolution: "chardet@npm:0.7.0"
   checksum: 6fd5da1f5d18ff5712c1e0aed41da200d7c51c28f11b36ee3c7b483f3696dabc08927fc6b227735eb8f0e1215c9a8abd8154637f3eff8cada5959df7f58b024d
+  languageName: node
+  linkType: hard
+
+"chess.js@npm:^1.0.0-alpha.0":
+  version: 1.0.0-alpha.0
+  resolution: "chess.js@npm:1.0.0-alpha.0"
+  checksum: 347b31d9a3142f1cc4d4e275bccbc08e927ae53f4329a30739cae9376dd1ba3bd402b4a8ae68a8fcca6ddaa449e7a62415bcc9753c9f6532847bf273ee9684d3
   languageName: node
   linkType: hard
 
