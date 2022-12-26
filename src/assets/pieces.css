@@ -27,10 +27,11 @@ svg.piece.selected > path:nth-child(1) {
   animation-name: selected-border;
   animation-iteration-count: infinite;
   animation-timing-function: linear;
+  animation-direction: reverse;
 }
 
-svg.rook > path:nth-child(1) {
-  animation-direction: reverse;
+svg.piece.selected.rook > path:nth-child(1) {
+  animation-direction: normal;
 }
 
 @keyframes selected-border {

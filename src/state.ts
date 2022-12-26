@@ -1,6 +1,6 @@
 import { proxy } from 'valtio'
 import { Chess } from 'chess.js'
-import type { Square as Sq, Move } from 'chess.js'
+import type { Square as cSquare, Move as cMove } from 'chess.js'
 
 class Piece {
   white: boolean
@@ -23,6 +23,16 @@ class Square {
   constructor (idx: number) {
     this.idx = idx
   }
+}
+
+type Move = {
+  from: number,
+  to: number,
+  white: boolean,
+  enpassCapture: boolean,
+  promotion: boolean,
+  ksCastle: boolean,
+  qsCastle: boolean,
 }
 
 function initialBoard() {
@@ -107,21 +117,57 @@ function handleClick(square: Square) {
 
     // if we got here, we're trying to make a move
     const moves = validMovesFor(prevSelected.idx)
-    if (moves.includes(cur.idx)) {
-      state.chess.move({
-        from: idxToSq(prevSelected.idx),
-        to: idxToSq(cur.idx),
-      })
-
-      cur.piece = prevSelected.piece!
-      cur.piece.selected = false
-      prevSelected.piece = null
+    const move = moves.find(m => m.to === cur.idx)
+    if (move) {
+      makeMove(move)
     } else {
       highlightAvailable(cur)
       prevSelected.piece!.selected = false
       cur.error = true
     }
   }
+}
+
+async function makeMove(move: Move, promotion: cMove['promotion'] = undefined) {
+  if (move.promotion) {
+    // todo: prompt for promotion
+  }
+
+  // make the move in chess.js
+  state.chess.move({
+    from: idxToSq(move.from),
+    to: idxToSq(move.to),
+    promotion,
+  })
+
+  const from = getSquare(move.from)
+  const to = getSquare(move.to)
+
+  // actually move the piece
+  to.piece = from.piece!
+  to.piece.selected = false
+  from.piece = null
+
+  // update any other pieces
+  if (move.enpassCapture) {
+    const capturedIdx = move.white ? move.to - 8 : move.to + 8
+    getSquare(capturedIdx).piece = null
+  }
+
+  if (move.ksCastle) {
+    const rookSrc = getSquare(move.to + 1)
+    const rookDest = getSquare(move.to - 1)
+    rookDest.piece = rookSrc.piece
+    rookSrc.piece = null
+  }
+  if (move.qsCastle) {
+    const rookSrc = getSquare(move.to - 2)
+    const rookDest = getSquare(move.to + 1)
+    rookDest.piece = rookSrc.piece
+    rookSrc.piece = null
+  }
+
+  highlightAvailable(from)
 }
 
 function clearError(square: Square) {
@@ -132,7 +178,7 @@ function clearError(square: Square) {
 function highlightAvailable(cur: Square) {
   const moves = validMovesFor(cur.idx)
   for (const sq of state.squares) {
-    sq.highlight = moves.includes(sq.idx)
+    sq.highlight = moves.map(m => m.to).includes(sq.idx)
   }
 }
 
@@ -142,7 +188,7 @@ function idxToSq(idx: number) {
   const col = idx - (row << 3)
 
   const colName = colNames[col]
-  return `${colName}${row + 1}` as Sq
+  return `${colName}${row + 1}` as cSquare
 }
 
 function sqToIdx(sq: string) {
@@ -153,7 +199,6 @@ function sqToIdx(sq: string) {
   return (row << 3) + col
 }
 
-
 function getSquare(idx: number): Square {
   if (idx < 0 || idx > 63)
     throw new Error(`invalid index ${idx}`)
@@ -161,17 +206,21 @@ function getSquare(idx: number): Square {
   return state.squares.find(sq => sq.idx === idx)!
 }
 
-function validMovesFor(idx: Square['idx']): Array<number> {
-  console.dir(idxToSq(idx))
-
+function validMovesFor(idx: Square['idx']): Array<Move> {
   const moves = state.chess.moves({
     verbose: true,
     square: idxToSq(idx)
-  }) as Move[]
+  }) as cMove[]
 
-  console.dir(moves)
-
-  return moves.map((move) => sqToIdx(move.to))
+  return moves.map((move) => ({
+    from: idx,
+    to: sqToIdx(move.to),
+    white: move.color === 'w',
+    enpassCapture: move.flags.includes('e'),
+    promotion: move.flags.includes('p'),
+    ksCastle: move.flags.includes('k'),
+    qsCastle: move.flags.includes('q'),
+  }))
 }
 
 export {
