@@ -54,3 +54,6 @@ svg.piece.selected.black.onBlack > path:nth-child(1) {
   stroke-width: 3;
 }
 
+svg.piece.rotated {
+  transform: rotate(180deg);
+}

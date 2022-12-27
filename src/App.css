@@ -8,13 +8,29 @@
 }
 
 #sidebar {
-  border: 1px solid red;
+  display: flex;
+  flex-direction: column;
   width: 340px;
+}
+
+#sidebar .promotion {
+  display: flex;
+  flex-direction: column;
+}
+
+#sidebar .button {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  border: 1px solid black;
+  padding: 10px;
 }
 
 #board {
   display: inline-grid;
-  grid-template-columns: repeat(11, 96px);
+  grid-template-columns: repeat(8, 96px);
   margin-right: 20px;
 }
 
@@ -23,7 +39,6 @@
  * 300px for the sidebar
  * total: 400px
  * so, we have truly-1d chess if media width < 496
- */
 @media (max-width: 1500px) { #board { grid-template-columns: repeat(10, 96px); } }
 @media (max-width: 1400px) { #board { grid-template-columns: repeat(9, 96px); } }
 @media (max-width: 1200px) { #board { grid-template-columns: repeat(7, 96px); } }
@@ -33,6 +48,7 @@
 @media (max-width: 700px) { #board { grid-template-columns: repeat(3, 96px); } }
 @media (max-width: 600px) { #board { grid-template-columns: repeat(2, 96px); } }
 @media (max-width: 500px) { #board { grid-template-columns: repeat(1, 96px); } }
+ */
 
 div.square {
   padding: 16px;

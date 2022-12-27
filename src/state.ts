@@ -31,9 +31,10 @@ class Square {
 }
 
 type Move = {
-  from: number,
-  to: number,
-  promotion: boolean,
+  from: Square['idx'],
+  to: Square['idx'],
+  needsPromotion: boolean,
+  promotion?: cMove['promotion'],
 }
 
 function emptySquares() {
@@ -43,11 +44,47 @@ function emptySquares() {
 type State = {
   chess: Chess,
   squares: Square[],
+  needsPromotion: Move | null,
+
+  gameOver: boolean,
+  check: boolean,
+  checkmate: boolean,
+  stalemate: boolean,
+  draw: boolean,
+  insufficientMaterial: boolean,
+  threefoldRepetition: boolean,
+
+  drawOffered: false | 'white' | 'black',
+  drawAccepted: boolean,
+
+  resigned: false | 'white' | 'black',
+  confirmResign: boolean,
+
+  highlightOffered: false | 'white' | 'black',
+  highlightAccepted: boolean,
 }
 
 const state = proxy<State>({
   chess: new Chess(),
-  squares: []
+  squares: [],
+  needsPromotion: null,
+
+  gameOver: false,
+  check: false,
+  checkmate: false,
+  stalemate: false,
+  draw: false,
+  insufficientMaterial: false,
+  threefoldRepetition: false,
+
+  drawOffered: false,
+  drawAccepted: false,
+
+  resigned: false,
+  confirmResign: false,
+
+  highlightOffered: false,
+  highlightAccepted: true,
 })
 
 
@@ -101,16 +138,19 @@ function handleClick(idx: Square['idx']) {
   }
 }
 
-async function makeMove(move: Move, promotion: cMove['promotion'] = undefined) {
-  if (move.promotion) {
-    // todo: prompt for promotion
+async function makeMove(move: Move) {
+  if (move.needsPromotion && !move.promotion) {
+    state.needsPromotion = move
+    return
   }
+
+  state.needsPromotion = null
 
   // make the move in chess.js
   state.chess.move({
     from: idxToSq(move.from),
     to: idxToSq(move.to),
-    promotion,
+    promotion: move.promotion,
   })
 
   // update the squares
@@ -118,6 +158,8 @@ async function makeMove(move: Move, promotion: cMove['promotion'] = undefined) {
 }
 
 function highlightAvailable(cur: Square) {
+  if (!state.highlightAccepted) return
+
   const moves = validMovesFor(cur.idx)
   for (const sq of state.squares) {
     sq.highlight = moves.map(m => m.to).includes(sq.idx)
@@ -157,7 +199,7 @@ function validMovesFor(idx: Square['idx']): Array<Move> {
   return moves.map((move) => ({
     from: idx,
     to: sqToIdx(move.to),
-    promotion: move.flags.includes('p'),
+    needsPromotion: move.flags.includes('p'),
   }))
 }
 
@@ -171,6 +213,13 @@ function chessToSquares() {
   }
 
   state.squares = squares
+  state.gameOver = state.chess.isGameOver()
+  state.check = state.chess.isCheck()
+  state.checkmate = state.chess.isCheckmate()
+  state.stalemate = state.chess.isStalemate()
+  state.draw = state.chess.isDraw()
+  state.insufficientMaterial = state.chess.isInsufficientMaterial()
+  state.threefoldRepetition = state.chess.isThreefoldRepetition()
 }
 
 chessToSquares()
@@ -179,9 +228,11 @@ export {
   state,
   handleClick,
   clearError,
+  makeMove,
 }
 
 export type {
   Piece,
   Square,
+  Move,
 }

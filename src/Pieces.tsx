@@ -5,6 +5,7 @@ type PieceP = {
   white: boolean,
   onWhite: boolean,
   selected: boolean,
+  rotated?: boolean,
 }
 
 import './assets/pieces.css'
@@ -72,8 +73,8 @@ function Queen({ size, white, onWhite, selected }: PieceP) {
   )
 }
 
-function King({ size, white, onWhite, selected }: PieceP) {
-  const cls = classNames('piece', 'king', { selected, white, black: !white, onWhite, onBlack: !onWhite })
+function King({ size, white, onWhite, selected, rotated }: PieceP) {
+  const cls = classNames('piece', 'king', { selected, white, black: !white, onWhite, onBlack: !onWhite, rotated })
 
   return (
     <svg className={ cls } xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37.17 37.51"  width={ size } height={ size }>
