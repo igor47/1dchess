@@ -10,6 +10,10 @@ function App() {
         <Board />
         <Sidebar />
       </div>
+      <div id="footer">
+        Made for funsies by <a href="https://igor.moomers.org">igor47</a>.
+        Code <a href="https://github.com/igor47/1dchess">on Github</a>.
+      </div>
     </div>
   )
 }

@@ -3,6 +3,11 @@
   text-align: center;
 }
 
+#footer {
+  margin-top: 20px;
+  color: gray;
+}
+
 #game {
   display: flex;
 }
