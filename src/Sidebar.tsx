@@ -7,6 +7,7 @@ import type { Move, Square } from './state'
 import { Rook, Knight, Bishop, Queen, King } from './Pieces'
 
 import GameLogo from './assets/game.svg'
+import IconX from './assets/X.svg'
 
 type GetPromotionP = {
   move: Readonly<Move>,
@@ -73,7 +74,6 @@ function GetPromotion({ move, squares }: GetPromotionP) {
   )
 }
 
-
 function NewGameButtons() {
   return (
     <div className="buttons">
@@ -88,17 +88,49 @@ function NewGameButtons() {
   )
 }
 
+function ConfirmResign({ white }: { white: boolean }) {
+  return (
+    <div className="buttons">
+      <div className="button" onClick={ () => actions.confirmResign(true) }>
+        <King white={white} onWhite={false} selected={false} size={64} rotated={true} />
+        <h3>Yes, I give up</h3>
+      </div>
+
+      <div className="button" onClick={ () => actions.confirmResign(false) }>
+        <King white={white} onWhite={false} selected={false} size={64} rotated={false} />
+        <h3>No, fight on!</h3>
+      </div>
+    </div>
+  )
+}
+
+function AcceptDraw() {
+  return (
+    <div className="buttons">
+      <div className="button" onClick={ () => actions.acceptDraw(true) }>
+        <Flag size={64} />
+        <h3>Accept, let there be peace</h3>
+      </div>
+
+      <div className="button" onClick={ () => actions.acceptDraw(false) }>
+        <img src={ IconX } width="64" height="64" />
+        <h3>No, fight on!</h3>
+      </div>
+    </div>
+  )
+}
+
 type GameTimeButtonsP = {
   white: boolean,
 }
 function GameTimeButtons({ white }: GameTimeButtonsP) {
   return (
     <div className="buttons">
-      <div className="button">
+      <div className="button" onClick={ actions.beginResign }>
         <King white={white} onWhite={false} selected={false} size={64} rotated={true} />
         <h3>Resign</h3>
       </div>
-      <div className="button">
+      <div className="button" onClick={ actions.offerDraw }>
         <Flag size={64} />
         <h3>Offer Draw</h3>
       </div>
@@ -131,16 +163,24 @@ function Sidebar() {
     }
   } else if (snap.check) {
     msg = `${toMove} is in check!`
+  } else if (snap.confirmResign) {
+    msg = `${toMove} is resigning?!`
+  } else if (snap.drawOffered) {
+    msg = `${toMove} offers a draw!`
   }
 
-  const promotion = snap.needsPromotion ?
-    <GetPromotion move={ snap.needsPromotion } squares={ snap.squares }/> : null
-
-  const buttons = snap.gameId && !(snap.gameOver || snap.needsPromotion) ?
-    <GameTimeButtons white={toMove === 'White'} /> : null
-
-  const newGame = (snap.gameId && !snap.gameOver) ? null :
-    <NewGameButtons />
+  let menu
+  if (!snap.gameId || snap.gameOver) {
+    menu = <NewGameButtons />
+  } else if (snap.needsPromotion) {
+    menu = <GetPromotion move={ snap.needsPromotion } squares={ snap.squares }/>
+  } else if (snap.confirmResign) {
+    menu = <ConfirmResign white={snap.whiteToMove} />
+  } else if (snap.drawOffered) {
+    menu = <AcceptDraw />
+  } else {
+    menu = <GameTimeButtons white={snap.whiteToMove} />
+  }
 
   return (
     <div id="sidebar">
@@ -152,11 +192,7 @@ function Sidebar() {
         padding: '1rem',
         } }>{ msg }</h2>
 
-      { promotion }
-
-      { newGame }
-
-      { buttons }
+      { menu }
     </div>
   )
 }

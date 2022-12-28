@@ -87,7 +87,9 @@ const breakpoints = makeBreakpoints()
 function Board() {
   const snap = useSnapshot(state)
 
-  const [cols, setCols] = useState(8)
+  const [cols, setCols] = useState(
+    breakpoints.find(b => b.query.matches)!.cols
+  )
 
   useEffect(() => {
     const aborts = breakpoints.map(bp => {

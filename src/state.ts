@@ -100,7 +100,7 @@ const state = proxy<State>({
   needsPromotion: null,
   confirmResign: false,
 
-  // these are set from the `chess` element
+  // these are set from the `chess` element in chessToState
   gameOver: true,
   check: false,
   checkmate: false,
@@ -179,9 +179,6 @@ async function connectToGame(gameId: State['gameId']) {
       const val = snapshot.val() as RemoteState
       if (!val) return
 
-      localState.chess.load(val.gameFen)
-      chessToState()
-
       state.drawOffered = val.drawOffered
       state.drawAccepted = val.drawAccepted
 
@@ -189,13 +186,18 @@ async function connectToGame(gameId: State['gameId']) {
 
       state.highlightOffered = val.highlightOffered
       state.highlightAccepted = val.highlightAccepted
+
+      localState.chess.load(val.gameFen)
+      chessToState()
     }
   )
 }
 
-function clearError(idx: Square['idx']) {
-  const cur = getSquare(idx)
-  cur.error = false
+async function updateRemote(fields: Partial<RemoteState>): Promise<void> {
+  if (!state.gameId)
+    return
+
+  return update(ref(db, 'games/' + state.gameId), fields)
 }
 
 function handleClick(idx: Square['idx']) {
@@ -203,6 +205,12 @@ function handleClick(idx: Square['idx']) {
   const prevSelected = state.squares.find(sq => sq.piece?.selected)
 
   const whiteMoves = localState.chess.turn() === 'w'
+
+  // prohibit interactions in some states
+  if (state.needsPromotion || state.confirmResign) {
+    cur.error = true
+    return
+  }
 
   // nothing previously selected
   if (!prevSelected) {
@@ -259,10 +267,7 @@ async function makeMove(move: Move) {
   })
 
   // sync move to db
-  await update(
-    ref(db, 'games/' + state.gameId),
-    { gameFen: localState.chess.fen() },
-  )
+  await updateRemote({ gameFen: localState.chess.fen() })
 
   // update the squares
   chessToState()
@@ -332,14 +337,51 @@ function chessToState() {
   state.insufficientMaterial = localState.chess.isInsufficientMaterial()
   state.threefoldRepetition = localState.chess.isThreefoldRepetition()
   state.whiteToMove = localState.chess.turn() === 'w'
+
+  if (state.drawAccepted) {
+    state.gameOver = true
+    state.draw = true
+  }
+
+  if (state.resigned) {
+    state.gameOver = true
+  }
 }
 
 const actions = {
   handleClick,
   newGame,
-  makeMove,
-  clearError,
   connectToGame,
+  makeMove,
+  clearError: (idx: Square['idx']) => {
+    const cur = getSquare(idx)
+    cur.error = false
+  },
+  beginResign: () => { state.confirmResign = true },
+  confirmResign: async (confirmed: boolean) => {
+    state.confirmResign = false
+    if (confirmed) {
+      state.resigned = state.whiteToMove ? 'white' : 'black'
+    }
+    await updateRemote({ resigned: state.resigned })
+    chessToState()
+  },
+  offerDraw: async () => {
+    state.drawOffered = state.whiteToMove ? 'white' : 'black'
+    await updateRemote({ drawOffered: state.drawOffered })
+  },
+  acceptDraw: async (accepted: boolean) => {
+    if (accepted) {
+      state.drawAccepted = true
+    } else {
+      state.drawOffered = false
+    }
+
+    await updateRemote({
+      drawOffered: state.drawOffered, drawAccepted: state.drawAccepted
+    })
+    chessToState()
+  }
 }
 
 export {
