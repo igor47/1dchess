@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { useSnapshot } from 'valtio'
 import classNames from 'classnames'
 
@@ -32,6 +34,25 @@ function Flag({ size }: { size: number }) {
       <path style={ pStyle } d="m11.5,13.5s-2-1-1-2h3c0,1-1,2.4741-2,2z" fill="#808080"/>
       <path style={ pStyle }  d="m18.5,14.5c-2,0-4-4-8-3l3-7c3-1,6,2,8,2z" fill="#FFF"/>
     </svg>
+  )
+}
+
+function ShareBtn() {
+  const [copied, setCopied] = useState(false)
+  const cls = classNames('button', { 'flash': copied })
+
+  return (
+    <div
+      className={ cls }
+      onClick={ async () => {
+        const url = window.location.href
+        await navigator.clipboard.writeText(url)
+        setCopied(true)
+      }}
+      onAnimationEnd={ () => setCopied(false) }
+    >
+      <h3>{ copied ? 'Copied! Send to opponent!' : 'Copy game link!' }</h3>
+    </div>
   )
 }
 
@@ -88,13 +109,14 @@ function NewGameButtons() {
   )
 }
 
-type BothSidesP = Pick<State, 'userId' | 'white' | 'black'>
-function BothSides({ userId, white, black}: BothSidesP) {
-  const bothClaimed = white && black && white !== black && !([white, black].includes(userId))
+type BothSidesP = Pick<State, 'userId' | 'white' | 'black'> & {
+  watching: boolean,
+}
+function BothSides({ userId, white, black, watching}: BothSidesP) {
   const areBoth = white === black && white === userId
 
-  let btn1
-  if (bothClaimed) {
+  let btn1 = null
+  if (watching) {
     btn1 = <>
       <div>
         <h3>You're just watching!</h3>
@@ -109,8 +131,9 @@ function BothSides({ userId, white, black}: BothSidesP) {
   } else if (areBoth) {
     btn1 = <>
       <div><h3>You're playing both sides!</h3></div>
+      
     </>
-  } else {
+  } else if (white && white == black) {
     btn1 = <>
       <div><h3>Move & claim a side!</h3></div>
     </>
@@ -119,6 +142,7 @@ function BothSides({ userId, white, black}: BothSidesP) {
   return (
     <div className="buttons">
       { btn1 }
+      <ShareBtn />
     </div>
   )
 }
@@ -193,6 +217,7 @@ function GameTimeButtons({ white, isWhite }: GameTimeButtonsP) {
         <Flag size={64} />
         <h3>Offer Draw</h3>
       </div>
+      <ShareBtn />
     </div>
   )
 }
@@ -203,6 +228,8 @@ function Sidebar() {
   const toMove = snap.whiteToMove ? 'White' : 'Black'
   const isWhite = !snap.white || snap.white === snap.userId
   const isBlack = !snap.black || snap.black === snap.userId
+  const watching = (!isWhite && !isBlack && snap.white !== snap.black)
+
   let msg = `${toMove} to move...`
 
   if (snap.gameOver) {
@@ -243,8 +270,8 @@ function Sidebar() {
     menu = <ConfirmResign white={snap.whiteToMove} />
   } else if (snap.drawOffered) {
     menu = <AcceptDraw offeredBy={snap.drawOffered} white={isWhite} black={isBlack} />
-  } else if (!snap.white || !snap.black || snap.white === snap.black) {
-    menu = <BothSides userId={ snap.userId } white={snap.white} black={snap.black} />
+  } else if (!(isWhite || isBlack) || (isWhite && isBlack)) {
+    menu = <BothSides userId={snap.userId} white={snap.white} black={snap.black} watching={watching} />
   } else {
     menu = <GameTimeButtons white={snap.whiteToMove} isWhite={isWhite} />
   }

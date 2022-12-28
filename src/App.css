@@ -28,6 +28,19 @@
   padding: 10px;
 }
 
+#sidebar .button.flash {
+  animation: 3s ease-out button-flash;
+}
+
+@keyframes button-flash {
+  from {
+    background-color: hsl(128 80% 90%);
+  }
+
+  to {
+  }
+}
+
 div.square {
   padding: 16px;
 }
