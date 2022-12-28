@@ -96,7 +96,6 @@ function Board() {
         'change',
         (evt) => {
           if (evt.matches) {
-            console.dir(bp)
             setCols(bp.cols)
           }
         },
@@ -109,6 +108,16 @@ function Board() {
       aborts.forEach(ab => ab.abort())
     }
   }, [setCols])
+
+  useEffect(() => {
+    const path = window.location.pathname
+    if (path === '/') return
+
+    const gameId = path.slice(1)
+    if (gameId) {
+      actions.connectToGame(gameId)
+    }
+  }, [])
 
   const squares = snap.squares.map((sq, idx) =>
     <SquareEl key={idx} square={ sq } />
@@ -123,6 +132,7 @@ function Board() {
     flexDirection: 'row-reverse',
     marginRight: '20px',
     maxWidth: `${useCols * 96}px`,
+    border: '1px dotted gray',
   } as const
 
   return (

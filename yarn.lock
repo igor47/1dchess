@@ -9,6 +9,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "1dchess@workspace:."
   dependencies:
+    "@types/randomstring": ^1.1.8
     "@types/react": ^18.0.26
     "@types/react-dom": ^18.0.9
     "@vitejs/plugin-react": ^3.0.0
@@ -16,6 +17,7 @@ __metadata:
     classnames: ^2.3.2
     firebase: ^9.15.0
     firebase-tools: ^11.19.0
+    randomstring: ^1.2.3
     react: ^18.2.0
     react-dom: ^18.2.0
     typescript: ^4.9.3
@@ -1351,6 +1353,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/randomstring@npm:^1.1.8":
+  version: 1.1.8
+  resolution: "@types/randomstring@npm:1.1.8"
+  checksum: 22a9e4b09583ad8e7fa7ca214133abc014636d7d6eb49ca9ee671c09b241311107b0a6ea48205bf795ac61fbe5b185ac415aed2dd27c7f5806235bfea0e5532f
+  languageName: node
+  linkType: hard
+
 "@types/react-dom@npm:^18.0.9":
   version: 18.0.10
   resolution: "@types/react-dom@npm:18.0.10"
@@ -1681,6 +1690,13 @@ __metadata:
   version: 3.0.0
   resolution: "array-flatten@npm:3.0.0"
   checksum: ad00c51ca70cf837501fb6da823ba39bc6a86b43d0b76d840daa02fe0f8e68e94ad5bc2d0d038053118b879aaca8ea6168c32c7387a2fa5b118ad28db4f1f863
+  languageName: node
+  linkType: hard
+
+"array-uniq@npm:1.0.2":
+  version: 1.0.2
+  resolution: "array-uniq@npm:1.0.2"
+  checksum: 8c4beb94aa183791da1e155935aba4df3fe2eeb6f491c69e666ca7351f897b9b260fa04d016e0ce766ae8280129c16f11071e17359c81c01741289009bb5ac6d
   languageName: node
   linkType: hard
 
@@ -6006,6 +6022,25 @@ __metadata:
   version: 6.5.3
   resolution: "qs@npm:6.5.3"
   checksum: 6f20bf08cabd90c458e50855559539a28d00b2f2e7dddcb66082b16a43188418cb3cb77cbd09268bcef6022935650f0534357b8af9eeb29bf0f27ccb17655692
+  languageName: node
+  linkType: hard
+
+"randombytes@npm:2.0.3":
+  version: 2.0.3
+  resolution: "randombytes@npm:2.0.3"
+  checksum: 13e1abd143404dd87024bf345fb1a446b2e2ee46d8e1a5a073e8370c9b1e58000d81a97d4327ba7089087213eb6d8c77fa67ab4e91aa00605126d634fcccb9d4
+  languageName: node
+  linkType: hard
+
+"randomstring@npm:^1.2.3":
+  version: 1.2.3
+  resolution: "randomstring@npm:1.2.3"
+  dependencies:
+    array-uniq: 1.0.2
+    randombytes: 2.0.3
+  bin:
+    randomstring: bin/randomstring
+  checksum: 9f201638d1a51091b0262fae062bec53a94636dd1f193c703245eaa7676ee8de22f6e7d35075cfe49ba446999f0d6f1032fb7a50a99a2a80d8c28145748a4d67
   languageName: node
   linkType: hard
 

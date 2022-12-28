@@ -1,7 +1,7 @@
 import { useSnapshot } from 'valtio'
 import classNames from 'classnames'
 
-import { state, makeMove } from './state'
+import { state, actions } from './state'
 import type { Move, Square } from './state'
 
 import { Rook, Knight, Bishop, Queen, King } from './Pieces'
@@ -57,7 +57,7 @@ function GetPromotion({ move, squares }: GetPromotionP) {
       <div
         key={ promo }
         className={ cls }
-        onClick={ () => makeMove({...move, promotion: promo}) }
+        onClick={ () => actions.makeMove({...move, promotion: promo}) }
       >
         <El size={ 64 } white={ piece.white } onWhite={ true } selected={ false } />
         <h3>{ name }</h3>
@@ -73,11 +73,25 @@ function GetPromotion({ move, squares }: GetPromotionP) {
   )
 }
 
-type SidebarButtonsP = {
-  white: boolean,
+
+function NewGameButtons() {
+  return (
+    <div className="buttons">
+      <div
+        className="button"
+        onClick={ actions.newGame }
+      >
+        <img src={ GameLogo } width="64" height="64" />
+        <h3>New Game</h3>
+      </div>
+    </div>
+  )
 }
 
-function SidebarButtons({ white }: SidebarButtonsP) {
+type GameTimeButtonsP = {
+  white: boolean,
+}
+function GameTimeButtons({ white }: GameTimeButtonsP) {
   return (
     <div className="buttons">
       <div className="button">
@@ -95,11 +109,13 @@ function SidebarButtons({ white }: SidebarButtonsP) {
 function Sidebar() {
   const snap = useSnapshot(state)
 
-  const toMove = (snap.chess.turn() === 'w') ? 'White' : 'Black'
+  const toMove = snap.whiteToMove ? 'White' : 'Black'
   let msg = `${toMove} to move...`
 
   if (snap.gameOver) {
-    if (snap.checkmate) {
+    if (!snap.gameId) {
+      msg = 'How about a nice game of chess?'
+    } else if (snap.checkmate) {
       msg = `${toMove === 'Black' ? 'White' : 'Black'} Wins!`
     } else if (snap.stalemate) {
       msg = `${toMove === 'Black' ? 'White' : 'Black'} wins by stalemate!`
@@ -120,7 +136,7 @@ function Sidebar() {
   const promotion = snap.needsPromotion ?
     <GetPromotion move={ snap.needsPromotion } squares={ snap.squares }/> : null
 
-  const buttons = snap.gameId && !snap.gameOver && !snap.needsPromotion ?
+  const buttons = snap.gameId && !(snap.gameOver || snap.needsPromotion) ?
     <GameTimeButtons white={toMove === 'White'} /> : null
 
   const newGame = (snap.gameId && !snap.gameOver) ? null :
@@ -137,6 +153,8 @@ function Sidebar() {
         } }>{ msg }</h2>
 
       { promotion }
+
+      { newGame }
 
       { buttons }
     </div>

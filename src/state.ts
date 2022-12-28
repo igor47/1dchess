@@ -1,6 +1,13 @@
+
 import { proxy } from 'valtio'
+import { ref, set, get, onValue, update } from "firebase/database";
+
 import { Chess } from 'chess.js'
 import type { Square as cSquare, Move as cMove } from 'chess.js'
+
+import randomstring from 'randomstring'
+
+import { db } from './firestore'
 
 class Piece {
   white: boolean
@@ -37,12 +44,15 @@ type Move = {
   promotion?: cMove['promotion'],
 }
 
-function emptySquares() {
-  return Array(64).fill(null).map((_v, idx) => new Square(idx))
+type LocalState = {
+  chess: Chess,
+  listener: ReturnType<typeof onValue> | null,
 }
 
 type State = {
-  chess: Chess,
+  gameId: string | null,
+  userId: string,
+
   squares: Square[],
   needsPromotion: Move | null,
 
@@ -53,6 +63,7 @@ type State = {
   draw: boolean,
   insufficientMaterial: boolean,
   threefoldRepetition: boolean,
+  whiteToMove: boolean,
 
   drawOffered: false | 'white' | 'black',
   drawAccepted: boolean,
@@ -64,29 +75,121 @@ type State = {
   highlightAccepted: boolean,
 }
 
-const state = proxy<State>({
-  chess: new Chess(),
-  squares: [],
-  needsPromotion: null,
+type RemoteState = Pick<State,
+'userId' | 'gameId' | 'drawOffered' | 'drawAccepted' | 'resigned' |
+  'highlightAccepted' | 'highlightOffered'
+> & {
+  gameFen: ReturnType<Chess['fen']>,
+}
 
-  gameOver: false,
+function emptySquares() {
+  return Array(64).fill(null).map((_v, idx) => new Square(idx))
+}
+
+const localState: LocalState = {
+  chess: new Chess(),
+  listener: null,
+}
+
+const state = proxy<State>({
+  gameId: null,
+  userId: getUserId(),
+
+  // does not get synced
+  squares: emptySquares(),
+  needsPromotion: null,
+  confirmResign: false,
+
+  // these are set from the `chess` element
+  gameOver: true,
   check: false,
   checkmate: false,
   stalemate: false,
   draw: false,
   insufficientMaterial: false,
   threefoldRepetition: false,
+  whiteToMove: true,
 
+  // these are set by actions and synced to db
   drawOffered: false,
   drawAccepted: false,
 
   resigned: false,
-  confirmResign: false,
 
   highlightOffered: false,
   highlightAccepted: true,
 })
 
+function getUserId() {
+  let userId = window.localStorage.getItem('1dChessUserId')
+  if (!userId) {
+    userId = randomstring.generate()
+    window.localStorage.setItem('1dChessUserId', userId)
+  }
+  return userId
+}
+
+async function newGame() {
+  if (localState.listener) {
+    localState.listener()
+    localState.listener = null
+  }
+
+  const gameId = randomstring.generate({
+    length: 16, readable: true, capitalization: 'lowercase'
+  })
+
+  // reset so we can get a blank `fen`
+  localState.chess.reset()
+  const data: RemoteState = {
+    userId: state.userId,
+    gameId: gameId,
+   
+    drawOffered: false,
+    drawAccepted: false,
+
+    resigned: false,
+
+    highlightOffered: false,
+    highlightAccepted: true,
+
+    gameFen: localState.chess.fen(),
+  }
+
+  await set(ref(db, 'games/' + gameId), data)
+  window.history.pushState({}, '', `/${gameId}`)
+
+  connectToGame(gameId)
+}
+
+async function connectToGame(gameId: State['gameId']) {
+  const gameRef = ref(db, 'games/' + gameId)
+  const snapshot = await get(gameRef)
+
+  if (!snapshot.exists)
+    return;
+
+  localState.listener = onValue(
+    gameRef, 
+    (snapshot) => {
+      const val = snapshot.val() as RemoteState
+      if (!val) return
+
+      localState.chess.load(val.gameFen)
+      chessToState()
+
+      state.drawOffered = val.drawOffered
+      state.drawAccepted = val.drawAccepted
+
+      state.resigned = val.resigned
+
+      state.highlightOffered = val.highlightOffered
+      state.highlightAccepted = val.highlightAccepted
+
+      if (!state.gameId) state.gameId = gameId
+    }
+  )
+}
 
 function clearError(idx: Square['idx']) {
   const cur = getSquare(idx)
@@ -97,7 +200,7 @@ function handleClick(idx: Square['idx']) {
   const cur = getSquare(idx)
   const prevSelected = state.squares.find(sq => sq.piece?.selected)
 
-  const whiteMoves = state.chess.turn() === 'w'
+  const whiteMoves = localState.chess.turn() === 'w'
 
   // nothing previously selected
   if (!prevSelected) {
@@ -147,14 +250,20 @@ async function makeMove(move: Move) {
   state.needsPromotion = null
 
   // make the move in chess.js
-  state.chess.move({
+  localState.chess.move({
     from: idxToSq(move.from),
     to: idxToSq(move.to),
     promotion: move.promotion,
   })
 
+  // sync move to db
+  await update(
+    ref(db, 'games/' + state.gameId),
+    { gameFen: localState.chess.fen() },
+  )
+
   // update the squares
-  chessToSquares()
+  chessToState()
 }
 
 function highlightAvailable(cur: Square) {
@@ -191,7 +300,7 @@ function getSquare(idx: number): Square {
 }
 
 function validMovesFor(idx: Square['idx']): Array<Move> {
-  const moves = state.chess.moves({
+  const moves = localState.chess.moves({
     verbose: true,
     square: idxToSq(idx)
   }) as cMove[]
@@ -203,9 +312,9 @@ function validMovesFor(idx: Square['idx']): Array<Move> {
   }))
 }
 
-function chessToSquares() {
+function chessToState() {
   const squares = emptySquares()
-  for (const cq of state.chess.board().flat()) {
+  for (const cq of localState.chess.board().flat()) {
     if (cq) {
       const sq = squares.find(sq => sq.idx === sqToIdx(cq.square))!
       sq.piece = new Piece(cq.color === 'w', cq.type)
@@ -213,22 +322,27 @@ function chessToSquares() {
   }
 
   state.squares = squares
-  state.gameOver = state.chess.isGameOver()
-  state.check = state.chess.isCheck()
-  state.checkmate = state.chess.isCheckmate()
-  state.stalemate = state.chess.isStalemate()
-  state.draw = state.chess.isDraw()
-  state.insufficientMaterial = state.chess.isInsufficientMaterial()
-  state.threefoldRepetition = state.chess.isThreefoldRepetition()
+  state.gameOver = localState.chess.isGameOver()
+  state.check = localState.chess.isCheck()
+  state.checkmate = localState.chess.isCheckmate()
+  state.stalemate = localState.chess.isStalemate()
+  state.draw = localState.chess.isDraw()
+  state.insufficientMaterial = localState.chess.isInsufficientMaterial()
+  state.threefoldRepetition = localState.chess.isThreefoldRepetition()
+  state.whiteToMove = localState.chess.turn() === 'w'
 }
 
-chessToSquares()
+const actions = {
+  handleClick,
+  newGame,
+  makeMove,
+  clearError,
+  connectToGame,
+}
 
 export {
   state,
-  handleClick,
-  clearError,
-  makeMove,
+  actions,
 }
 
 export type {
