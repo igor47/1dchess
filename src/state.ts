@@ -130,17 +130,12 @@ function getUserId() {
 }
 
 async function newGame() {
-  if (localState.listener) {
-    localState.listener()
-    localState.listener = null
-  }
-
-  const gameId = randomstring.generate({
+  // reuse existing game id so connected folks can keep playing 
+  const gameId = state.gameId || randomstring.generate({
     length: 16, readable: true, capitalization: 'lowercase'
   })
 
-  // reset so we can get a blank `fen`
-  localState.chess.reset()
+  // create new game in the db
   const data: RemoteState = {
     userId: state.userId,
     gameId: gameId,
@@ -153,22 +148,31 @@ async function newGame() {
     highlightOffered: false,
     highlightAccepted: true,
 
-    gameFen: localState.chess.fen(),
+    gameFen: (new Chess().fen()),
   }
-
   await set(ref(db, 'games/' + gameId), data)
-  window.history.pushState({}, '', `/${gameId}`)
 
+  window.history.pushState({}, '', `/${gameId}`)
   connectToGame(gameId)
 }
 
 async function connectToGame(gameId: State['gameId']) {
+  // make sure the game was created correctly
   const gameRef = ref(db, 'games/' + gameId)
   const snapshot = await get(gameRef)
-
   if (!snapshot.exists)
     return;
 
+  // unsubscribe any existing listeners
+  if (localState.listener) {
+    localState.listener()
+    localState.listener = null
+  }
+
+  // clear any current game
+  localState.chess.clear()
+
+  state.gameId = gameId
   localState.listener = onValue(
     gameRef, 
     (snapshot) => {
@@ -185,8 +189,6 @@ async function connectToGame(gameId: State['gameId']) {
 
       state.highlightOffered = val.highlightOffered
       state.highlightAccepted = val.highlightAccepted
-
-      if (!state.gameId) state.gameId = gameId
     }
   )
 }
