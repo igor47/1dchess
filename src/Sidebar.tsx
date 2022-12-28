@@ -2,7 +2,7 @@ import { useSnapshot } from 'valtio'
 import classNames from 'classnames'
 
 import { state, actions } from './state'
-import type { Move, Square } from './state'
+import type { Move, Square, State } from './state'
 
 import { Rook, Knight, Bishop, Queen, King } from './Pieces'
 
@@ -88,6 +88,41 @@ function NewGameButtons() {
   )
 }
 
+type BothSidesP = Pick<State, 'userId' | 'white' | 'black'>
+function BothSides({ userId, white, black}: BothSidesP) {
+  const bothClaimed = white && black && white !== black && !([white, black].includes(userId))
+  const areBoth = white === black && white === userId
+
+  let btn1
+  if (bothClaimed) {
+    btn1 = <>
+      <div>
+        <h3>You're just watching!</h3>
+      </div>
+      <div
+        className="button"
+        onClick={ () => { window.location.assign(window.location.origin) } }>
+        <h3>Start Your Own Game</h3>
+      </div>
+    </>
+
+  } else if (areBoth) {
+    btn1 = <>
+      <div><h3>You're playing both sides!</h3></div>
+    </>
+  } else {
+    btn1 = <>
+      <div><h3>Move & claim a side!</h3></div>
+    </>
+  }
+
+  return (
+    <div className="buttons">
+      { btn1 }
+    </div>
+  )
+}
+
 function ConfirmResign({ white }: { white: boolean }) {
   return (
     <div className="buttons">
@@ -104,32 +139,56 @@ function ConfirmResign({ white }: { white: boolean }) {
   )
 }
 
-function AcceptDraw() {
-  return (
-    <div className="buttons">
-      <div className="button" onClick={ () => actions.acceptDraw(true) }>
-        <Flag size={64} />
-        <h3>Accept, let there be peace</h3>
+type AcceptDrawP = {
+  white: boolean,
+  black: boolean,
+  offeredBy: 'white' | 'black'
+}
+function AcceptDraw({ white, black, offeredBy }: AcceptDrawP) {
+  if (offeredBy === 'white' && white || offeredBy === 'black' && black) {
+    return (
+      <div className="buttons">
+        <div className="button" onClick={ () => actions.acceptDraw(false) }>
+          <img src={ IconX } width="64" height="64" />
+          <h3>Nevermind, fight on!</h3>
+        </div>
       </div>
+    )
+  } else {
+    return (
+      <div className="buttons">
+        <div className="button" onClick={ () => actions.acceptDraw(true) }>
+          <Flag size={64} />
+          <h3>Accept, let there be peace</h3>
+        </div>
 
-      <div className="button" onClick={ () => actions.acceptDraw(false) }>
-        <img src={ IconX } width="64" height="64" />
-        <h3>No, fight on!</h3>
+        <div className="button" onClick={ () => actions.acceptDraw(false) }>
+          <img src={ IconX } width="64" height="64" />
+          <h3>No, fight on!</h3>
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 }
 
 type GameTimeButtonsP = {
   white: boolean,
+  isWhite: boolean,
 }
-function GameTimeButtons({ white }: GameTimeButtonsP) {
-  return (
-    <div className="buttons">
+function GameTimeButtons({ white, isWhite }: GameTimeButtonsP) {
+  let resign = null
+  if (white === isWhite) {
+    resign = (
       <div className="button" onClick={ actions.beginResign }>
         <King white={white} onWhite={false} selected={false} size={64} rotated={true} />
         <h3>Resign</h3>
       </div>
+    )
+  }
+
+  return (
+    <div className="buttons">
+      { resign }
       <div className="button" onClick={ actions.offerDraw }>
         <Flag size={64} />
         <h3>Offer Draw</h3>
@@ -142,6 +201,8 @@ function Sidebar() {
   const snap = useSnapshot(state)
 
   const toMove = snap.whiteToMove ? 'White' : 'Black'
+  const isWhite = !snap.white || snap.white === snap.userId
+  const isBlack = !snap.black || snap.black === snap.userId
   let msg = `${toMove} to move...`
 
   if (snap.gameOver) {
@@ -167,6 +228,10 @@ function Sidebar() {
     msg = `${toMove} is resigning?!`
   } else if (snap.drawOffered) {
     msg = `${toMove} offers a draw!`
+  } else if (snap.whiteToMove && isWhite) {
+    msg = `Your move, White!`
+  } else if (!snap.whiteToMove && isBlack) {
+    msg = `Your move, Black!`
   }
 
   let menu
@@ -177,9 +242,11 @@ function Sidebar() {
   } else if (snap.confirmResign) {
     menu = <ConfirmResign white={snap.whiteToMove} />
   } else if (snap.drawOffered) {
-    menu = <AcceptDraw />
+    menu = <AcceptDraw offeredBy={snap.drawOffered} white={isWhite} black={isBlack} />
+  } else if (!snap.white || !snap.black || snap.white === snap.black) {
+    menu = <BothSides userId={ snap.userId } white={snap.white} black={snap.black} />
   } else {
-    menu = <GameTimeButtons white={snap.whiteToMove} />
+    menu = <GameTimeButtons white={snap.whiteToMove} isWhite={isWhite} />
   }
 
   return (

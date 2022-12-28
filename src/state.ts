@@ -50,11 +50,14 @@ type LocalState = {
 }
 
 type State = {
-  gameId: string | null,
+  gameId: string | false,
   userId: string,
 
+  white: string | false,
+  black: string | false,
+
   squares: Square[],
-  needsPromotion: Move | null,
+  needsPromotion: Move | false,
 
   gameOver: boolean,
   check: boolean,
@@ -76,7 +79,7 @@ type State = {
 }
 
 type RemoteState = Pick<State,
-'userId' | 'gameId' | 'drawOffered' | 'drawAccepted' | 'resigned' |
+'gameId' | 'white' | 'black' | 'drawOffered' | 'drawAccepted' | 'resigned' |
   'highlightAccepted' | 'highlightOffered'
 > & {
   gameFen: ReturnType<Chess['fen']>,
@@ -92,12 +95,15 @@ const localState: LocalState = {
 }
 
 const state = proxy<State>({
-  gameId: null,
+  gameId: false,
   userId: getUserId(),
+
+  white: false,
+  black: false,
 
   // does not get synced
   squares: emptySquares(),
-  needsPromotion: null,
+  needsPromotion: false,
   confirmResign: false,
 
   // these are set from the `chess` element in chessToState
@@ -137,8 +143,10 @@ async function newGame() {
 
   // create new game in the db
   const data: RemoteState = {
-    userId: state.userId,
     gameId: gameId,
+
+    white: false,
+    black: false,
    
     drawOffered: false,
     drawAccepted: false,
@@ -179,6 +187,9 @@ async function connectToGame(gameId: State['gameId']) {
       const val = snapshot.val() as RemoteState
       if (!val) return
 
+      state.white = val.white
+      state.black = val.black
+
       state.drawOffered = val.drawOffered
       state.drawAccepted = val.drawAccepted
 
@@ -204,7 +215,21 @@ function handleClick(idx: Square['idx']) {
   const cur = getSquare(idx)
   const prevSelected = state.squares.find(sq => sq.piece?.selected)
 
-  const whiteMoves = localState.chess.turn() === 'w'
+  // can we move right now?
+  const whiteMoves = state.whiteToMove
+  const playerIsWhite = (
+    state.white === state.userId || !state.white || state.white === state.black)
+  const playerIsBlack = (
+    state.black === state.userId || !state.black || state.white === state.black)
+  if (whiteMoves && !playerIsWhite) {
+    cur.error = true
+    return
+  }
+
+  if (!whiteMoves && !playerIsBlack) {
+    cur.error = true
+    return
+  }
 
   // prohibit interactions in some states
   if (state.needsPromotion || state.confirmResign) {
@@ -257,7 +282,7 @@ async function makeMove(move: Move) {
     return
   }
 
-  state.needsPromotion = null
+  state.needsPromotion = false
 
   // make the move in chess.js
   localState.chess.move({
@@ -266,8 +291,19 @@ async function makeMove(move: Move) {
     promotion: move.promotion,
   })
 
+  // claim sides for the player who made the move
+  if (localState.chess.turn() === 'w') {
+    state.black = state.userId
+  } else {
+    state.white = state.userId
+  }
+
   // sync move to db
-  await updateRemote({ gameFen: localState.chess.fen() })
+  await updateRemote({
+    gameFen: localState.chess.fen(),
+    white: state.white,
+    black: state.black,
+  })
 
   // update the squares
   chessToState()
@@ -357,20 +393,42 @@ const actions = {
     const cur = getSquare(idx)
     cur.error = false
   },
-  beginResign: () => { state.confirmResign = true },
+  beginResign: () => {
+    if (state.white !== state.userId && state.black !== state.userId)
+      return
+
+    state.confirmResign = true
+  },
   confirmResign: async (confirmed: boolean) => {
+    const side = state.white === state.userId ? 'white' :
+      (state.black === state.userId ? 'black' : null)
+
+    if (!side || !state.confirmResign)
+      return
+
     state.confirmResign = false
     if (confirmed) {
-      state.resigned = state.whiteToMove ? 'white' : 'black'
+      state.resigned = side
     }
     await updateRemote({ resigned: state.resigned })
     chessToState()
   },
   offerDraw: async () => {
-    state.drawOffered = state.whiteToMove ? 'white' : 'black'
+    const side = state.white === state.userId ? 'white' :
+      (state.black === state.userId ? 'black' : null)
+
+    if (!side) return
+
+    state.drawOffered = side
     await updateRemote({ drawOffered: state.drawOffered })
   },
   acceptDraw: async (accepted: boolean) => {
+    const side = state.white === state.userId ? 'white' :
+      (state.black === state.userId ? 'black' : null)
+
+    if (!side || !state.drawOffered || (state.drawOffered === side && accepted))
+      return
+
     if (accepted) {
       state.drawAccepted = true
     } else {
@@ -393,4 +451,5 @@ export type {
   Piece,
   Square,
   Move,
+  State,
 }
