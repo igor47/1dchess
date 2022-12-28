@@ -62,7 +62,7 @@ function makeBreakpoints() {
    * so, we have truly-1d chess if media width < 496, and then every 96px after
    */
   const breakpoints = [
-    {cols: 1, minWidth: 0, maxWidth: 496, query: window.matchMedia('(width <= 496)')}
+    {cols: 1, minWidth: 0, maxWidth: 496, query: window.matchMedia('(width <= 496px)')}
   ]
   while (breakpoints[breakpoints.length - 1].minWidth < 1900) {
     const last = breakpoints[breakpoints.length - 1]
@@ -77,7 +77,7 @@ function makeBreakpoints() {
   }
 
   const last = breakpoints[breakpoints.length - 1]
-  last.query = window.matchMedia(`(width > ${last.minWidth})`)
+  last.query = window.matchMedia(`(width > ${last.minWidth}px)`)
 
   return breakpoints
 }
