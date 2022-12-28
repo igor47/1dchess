@@ -6,6 +6,8 @@ import type { Move, Square } from './state'
 
 import { Rook, Knight, Bishop, Queen, King } from './Pieces'
 
+import GameLogo from './assets/game.svg'
+
 type GetPromotionP = {
   move: Readonly<Move>,
   squares: Readonly<Array<Readonly<Square>>>,
@@ -118,11 +120,15 @@ function Sidebar() {
   const promotion = snap.needsPromotion ?
     <GetPromotion move={ snap.needsPromotion } squares={ snap.squares }/> : null
 
-  const buttons = !snap.gameOver && !snap.needsPromotion ?
-    <SidebarButtons white={toMove === 'White'} /> : null
+  const buttons = snap.gameId && !snap.gameOver && !snap.needsPromotion ?
+    <GameTimeButtons white={toMove === 'White'} /> : null
+
+  const newGame = (snap.gameId && !snap.gameOver) ? null :
+    <NewGameButtons />
 
   return (
     <div id="sidebar">
+      <h1>1D Chess</h1>
       <h2 style={ {
         background: toMove === 'White' ? 'black' : 'white',
         color: toMove === 'White' ? 'white' : 'black',

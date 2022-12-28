@@ -1,9 +1,9 @@
-import { ReactNode } from 'react'
+import { ReactNode, useState, useEffect } from 'react'
 
 import { useSnapshot } from 'valtio'
 import classNames from 'classnames'
 
-import { state, handleClick, clearError } from './state'
+import { state, actions } from './state'
 import type { Square } from './state'
 
 import { Pawn, Rook, Knight, Bishop, Queen, King } from './Pieces'
@@ -45,36 +45,89 @@ function SquareEl({ square }: SquareP) {
   return (
     <div
       className={ cls }
-      onClick={ () => handleClick(square.idx) }
-      onAnimationEnd={ () => clearError(square.idx) }
+      onClick={ () => actions.handleClick(square.idx) }
+      onAnimationEnd={ () => actions.clearError(square.idx) }
     >
       { piece }
     </div>
   )
 }
 
+function makeBreakpoints() {
+  /*
+   * okay, so, we have 20 * 2 = 40px padding
+   * 20px margin between board and sidebar
+   * 300px for the sidebar
+   * total: 400px
+   * so, we have truly-1d chess if media width < 496, and then every 96px after
+   */
+  const breakpoints = [
+    {cols: 1, minWidth: 0, maxWidth: 496, query: window.matchMedia('(width <= 496)')}
+  ]
+  while (breakpoints[breakpoints.length - 1].minWidth < 1900) {
+    const last = breakpoints[breakpoints.length - 1]
+    breakpoints.push({
+      cols: last.cols + 1,
+      minWidth: last.maxWidth,
+      maxWidth: last.maxWidth + 96,
+      query: window.matchMedia(
+        `(${last.maxWidth}px < width <= ${last.maxWidth + 96}px)`
+      )
+    })
+  }
+
+  const last = breakpoints[breakpoints.length - 1]
+  last.query = window.matchMedia(`(width > ${last.minWidth})`)
+
+  return breakpoints
+}
+
+const breakpoints = makeBreakpoints()
+
 function Board() {
   const snap = useSnapshot(state)
 
-  // we should start ordering like:
-  // 56 ... 63
-  // ...
-  // 0 ... 7
-  // so, 56 has the lowest ordering (should be 0), and 7 has the heighest (63)
-  const squares = []
-  for (let row = 7; row >= 0; row--) {
-    for (let col = 0; col <= 7; col++) {
-      const idx = (row << 3) + col
-      const sq = snap.squares[idx]
-      squares.push(
-        <SquareEl key={idx} square={ sq } />
+  const [cols, setCols] = useState(8)
+
+  useEffect(() => {
+    const aborts = breakpoints.map(bp => {
+      const ac = new AbortController()
+      bp.query.addEventListener(
+        'change',
+        (evt) => {
+          if (evt.matches) {
+            console.dir(bp)
+            setCols(bp.cols)
+          }
+        },
+        { signal: ac.signal },
       )
+      return ac
+    })
+
+    return () => {
+      aborts.forEach(ab => ab.abort())
     }
-  }
+  }, [setCols])
+
+  const squares = snap.squares.map((sq, idx) =>
+    <SquareEl key={idx} square={ sq } />
+  )
+
+  // never allow 8 columns!
+  const useCols = cols === 8 ? 7 : cols
+
+  const style = {
+    display: 'flex',
+    flexWrap: 'wrap',
+    flexDirection: 'row-reverse',
+    marginRight: '20px',
+    maxWidth: `${useCols * 96}px`,
+  } as const
 
   return (
-    <div id="board">
-      { squares }
+    <div id='board' style={ style }>
+      { squares.reverse() }
     </div>
   )
 }
