@@ -88,7 +88,7 @@ function Board() {
   const snap = useSnapshot(state)
 
   const [cols, setCols] = useState(
-    breakpoints.find(b => b.query.matches)!.cols
+    (breakpoints.find(b => b.query.matches)?.cols) ?? 1
   )
 
   useEffect(() => {
