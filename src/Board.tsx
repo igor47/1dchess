@@ -53,7 +53,9 @@ function SquareEl({ square }: SquareP) {
   )
 }
 
-function makeBreakpoints() {
+function calcCols() {
+  const pixels = screen.width
+
   /*
    * okay, so, we have 20 * 2 = 40px padding
    * 20px margin between board and sidebar
@@ -61,56 +63,40 @@ function makeBreakpoints() {
    * total: 400px
    * so, we have truly-1d chess if media width < 496, and then every 96px after
    */
-  const breakpoints = [
-    {cols: 1, minWidth: 0, maxWidth: 496, query: window.matchMedia('(width <= 496px)')}
-  ]
-  while (breakpoints[breakpoints.length - 1].minWidth < 1900) {
-    const last = breakpoints[breakpoints.length - 1]
-    breakpoints.push({
-      cols: last.cols + 1,
-      minWidth: last.maxWidth,
-      maxWidth: last.maxWidth + 96,
-      query: window.matchMedia(
-        `(${last.maxWidth}px < width <= ${last.maxWidth + 96}px)`
-      )
-    })
-  }
+  const maxCols = 18
+  const staticWidth = 400
+  const colWidth = 96
 
-  const last = breakpoints[breakpoints.length - 1]
-  last.query = window.matchMedia(`(width > ${last.minWidth}px)`)
+  const maxWidth = staticWidth + maxCols*colWidth
+  const minWidth = staticWidth + colWidth
+  const avail = Math.max(Math.min(pixels, maxWidth), minWidth)
 
-  return breakpoints
+  const cols = Math.floor((avail - staticWidth) / colWidth)
+  console.log(`resizing to ${cols} cols (${pixels})`)
+  return cols === 8 ? 7 : cols
 }
-
-const breakpoints = makeBreakpoints()
 
 function Board() {
   const snap = useSnapshot(state)
 
-  const [cols, setCols] = useState(
-    (breakpoints.find(b => b.query.matches)?.cols) ?? 1
-  )
+  const [cols, setCols] = useState(calcCols())
+  const resize = () => { setCols(calcCols) }
 
+  // resize board when window size/orientation changes
   useEffect(() => {
-    const aborts = breakpoints.map(bp => {
-      const ac = new AbortController()
-      bp.query.addEventListener(
-        'change',
-        (evt) => {
-          if (evt.matches) {
-            setCols(bp.cols)
-          }
-        },
-        { signal: ac.signal },
-      )
-      return ac
-    })
+    window.onresize = resize
+
+    const abortRotate = new AbortController()
+    window.screen.orientation.addEventListener(
+      'change', resize, { signal: abortRotate.signal })
 
     return () => {
-      aborts.forEach(ab => ab.abort())
+      window.onresize = null
+      abortRotate.abort()
     }
   }, [setCols])
 
+  // set the game from game ID in url
   useEffect(() => {
     const path = window.location.pathname
     if (path === '/') return
